@@ -1,14 +1,17 @@
 """
 Django settings for music_player project.
 """
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 from pathlib import Path
 from datetime import timedelta # JWT ke liye zaroori
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-)!d98(6r7j)rwnxf830%uu6%ne0&qjiq*zsej$nvo))e5l0@6r'
+SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = True
 ALLOWED_HOSTS = ['*'] # Development ke liye '*' theek hai, production mein specific domain dalna
 
@@ -69,8 +72,12 @@ WSGI_APPLICATION = 'music_player.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', 'postgres'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
