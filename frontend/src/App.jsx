@@ -1,115 +1,164 @@
 import { useState, useEffect, useRef } from 'react';
-import Sidebar from './components/Sidebar';
-import TopBar from './components/TopBar';
-import HeroSection from './components/HeroSection';
-import SongGrid from './components/SongGrid';
-import Player from './components/Player';
+import LeftSidebar from './components/LeftSidebar';
+import MainContent from './components/MainContent';
+import RightPanel from './components/RightPanel';
+import BottomPlayer from './components/BottomPlayer';
+import ProfileModal from './components/ProfileModal';
+import Login from './components/Login';
+import api from './utils/axios';
 
 function App() {
-  // ===== 1. STATE VARIABLES (Data Store) =====
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('home');
+  const [user, setUser] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
+
   const [songs, setSongs] = useState([]);
   const [currentSong, setCurrentSong] = useState(null);
-  const [currentSongIndex, setCurrentSongIndex] = useState(0); // Naya: Track karne ke liye kaunsa song chal raha
   const [isPlaying, setIsPlaying] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('home');
-  
-  // Naya: Liked Songs aur Playlists
-  const [likedSongs, setLikedSongs] = useState([]); 
+  const [likedSongs, setLikedSongs] = useState([]);
   const [playlists, setPlaylists] = useState([]);
 
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState('0:00');
   const [duration, setDuration] = useState('0:30');
-  
+
   const audioRef = useRef(null);
 
-  // ===== 2. API & INITIAL LOAD =====
   useEffect(() => {
-    fetchSongs('pop');
+    const checkAuth = async () => {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        try {
+          const res = await api.get('/auth/me/');
+          setUser(res.data);
+          setIsAuthenticated(true);
+          fetchUserData();
+        } catch (error) {
+          localStorage.removeItem('access_token');
+          setIsAuthenticated(false);
+        }
+      }
+      setLoading(false);
+    };
+    checkAuth();
   }, []);
 
-  const fetchSongs = async (term) => {
+  const fetchUserData = async () => {
     try {
-      const response = await fetch(`https://itunes.apple.com/search?term=${term}&media=music&limit=20`);
-      if (!response.ok) throw new Error('API request failed');
-      
-      const data = await response.json();
-      const formattedSongs = data.results
-        .filter(track => track.previewUrl)
-        .map(track => ({
-          id: track.trackId,
-          title: track.trackName,
-          artist: track.artistName,
-          cover: track.artworkUrl100.replace('100x100', '300x300'),
-          src: track.previewUrl
-        }));
-      
-      setSongs(formattedSongs);
-      if (formattedSongs.length > 0 && !currentSong) {
-        setCurrentSong(formattedSongs[0]);
-      }
+      const likedRes = await api.get('/liked-songs/');
+      setLikedSongs(likedRes.data);
+      const playlistsRes = await api.get('/playlists/');
+      setPlaylists(playlistsRes.data);
     } catch (error) {
-      console.error('Error fetching songs:', error);
+      console.error("Error fetching user data:", error);
     }
   };
 
-  // ===== 3. HANDLERS (Functions) =====
-  
-  // Song Play karna
   const playSong = (song) => {
-    const index = songs.findIndex(s => s.id === song.id);
-    setCurrentSongIndex(index !== -1 ? index : 0);
     setCurrentSong(song);
     setIsPlaying(true);
     setTimeout(() => {
       if (audioRef.current) {
         audioRef.current.load();
-        audioRef.current.play().catch(err => setIsPlaying(false));
+        audioRef.current.play().catch(err => console.error("Play error:", err));
       }
     }, 100);
   };
 
-  // Naya: Next Song
   const playNext = () => {
     if (songs.length === 0) return;
-    const nextIndex = (currentSongIndex + 1) % songs.length; // Loop mein wapas aane ke liye
-    setCurrentSongIndex(nextIndex);
-    playSong(songs[nextIndex]);
+    const idx = songs.findIndex(s => s.id === currentSong?.id);
+    playSong(songs[(idx + 1) % songs.length]);
   };
 
-  // Naya: Previous Song
   const playPrevious = () => {
     if (songs.length === 0) return;
-    const prevIndex = currentSongIndex === 0 ? songs.length - 1 : currentSongIndex - 1;
-    setCurrentSongIndex(prevIndex);
-    playSong(songs[prevIndex]);
+    const idx = songs.findIndex(s => s.id === currentSong?.id);
+    playSong(songs[idx === 0 ? songs.length - 1 : idx - 1]);
   };
 
-  // Naya: Like/Unlike Toggle
-  const toggleLike = (song) => {
-    const isAlreadyLiked = likedSongs.find(s => s.id === song.id);
-    if (isAlreadyLiked) {
-      setLikedSongs(likedSongs.filter(s => s.id !== song.id)); // Remove
-    } else {
-      setLikedSongs([...likedSongs, song]); // Add
+  const toggleLike = async (song) => {
+    const isLiked = likedSongs.find(s => s.song_id === song.id);
+    try {
+      if (isLiked) {
+        await api.delete(`/liked-songs/${song.id}/`);
+        setLikedSongs(likedSongs.filter(s => s.song_id !== song.id));
+      } else {
+        const response = await api.post('/liked-songs/', {
+          song_id: song.id, title: song.title, artist: song.artist, cover: song.cover, src: song.src
+        });
+        setLikedSongs([...likedSongs, response.data]);
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
     }
+  };
+
+  // NAYA: Add to Playlist Function
+  const addToPlaylist = async (playlistId, song) => {
+    try {
+      await api.post(`/playlists/${playlistId}/add-song/`, {
+        song_id: song.id,
+        title: song.title,
+        artist: song.artist,
+        cover: song.cover,
+        src: song.src
+      });
+      
+      // Local state update karein taaki UI turant reflect kare
+      setPlaylists(prev => prev.map(p => 
+        p.id === playlistId 
+          ? { ...p, songs: [...(p.songs || []), song] } 
+          : p
+      ));
+      alert('Song added to playlist successfully!');
+    } catch (error) {
+      console.error("Error adding to playlist:", error);
+      alert('Failed to add song to playlist.');
+    }
+  };
+
+  // English Prompt
+  const handleCreatePlaylist = async () => {
+    const name = prompt('Enter playlist name:');
+    if (!name || !name.trim()) return;
+    try {
+      const response = await api.post('/playlists/', { name: name.trim() });
+      setPlaylists([response.data, ...playlists]);
+      setActiveTab('library');
+      alert(`Playlist "${name}" created successfully!`);
+    } catch (error) {
+      console.error("Error creating playlist:", error);
+      alert("Failed to create playlist.");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    setShowProfile(false);
+    setIsAuthenticated(false);
+    setUser(null);
+    setLikedSongs([]);
+    setPlaylists([]);
   };
 
   const togglePlay = () => {
     if (!audioRef.current || !currentSong) return;
     if (isPlaying) audioRef.current.pause();
-    else audioRef.current.play().catch(err => console.error(err));
+    else audioRef.current.play();
     setIsPlaying(!isPlaying);
   };
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
-      const current = audioRef.current.currentTime;
+      const curr = audioRef.current.currentTime;
       const dur = audioRef.current.duration;
       if (dur) {
-        setProgress((current / dur) * 100);
-        setCurrentTime(formatTime(current));
+        setProgress((curr / dur) * 100);
+        setCurrentTime(formatTime(curr));
         setDuration(formatTime(dur));
       }
     }
@@ -122,86 +171,63 @@ function App() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const handleProgressClick = (e) => {
-    if (!audioRef.current || !currentSong) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
-    audioRef.current.currentTime = percent * audioRef.current.duration;
-  };
+  if (loading) return <div className="flex items-center justify-center h-screen bg-black text-white">Loading...</div>;
+  if (!isAuthenticated) return <Login onLoginSuccess={() => { setIsAuthenticated(true); fetchUserData(); }} />;
 
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    if (value.length >= 3) {
-      fetchSongs(value);
-      setActiveTab('search');
-    } else if (value.length === 0) {
-      fetchSongs('pop');
-      setActiveTab('home');
-    }
-  };
-
-  const handleNavClick = (tab) => setActiveTab(tab);
-
-  // ===== 4. RENDER (UI) =====
   return (
-    <div className="flex h-screen bg-black text-white font-sans overflow-hidden">
-      {/* Sidebar ko playlists aur likedSongs bhej rahe hain */}
-      <Sidebar 
-        activeTab={activeTab} 
-        onNavClick={handleNavClick} 
-        playlists={playlists} 
-        likedSongs={likedSongs} 
-      />
-      
-      <main className="flex-1 bg-gradient-to-b from-zinc-900 to-black overflow-y-auto pb-24 relative">
-        <TopBar searchTerm={searchTerm} onSearchChange={handleSearch} />
-        
-        {activeTab === 'home' && (
-          <>
-            <HeroSection currentSong={currentSong} isPlaying={isPlaying} onTogglePlay={togglePlay} />
-            <div className="px-8 pb-4">
-              <button 
-                onClick={togglePlay}
-                className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center text-black text-2xl shadow-xl hover:scale-105 hover:bg-green-400 transition-all mb-4"
-              >
-                {isPlaying ? '' : '▶'}
-              </button>
-            </div>
-          </>
-        )}
-        
-        {/* SongGrid ko toggleLike function bhej rahe hain */}
-        <SongGrid 
-          songs={songs} 
-          currentSong={currentSong} 
-          onPlaySong={playSong} 
+    <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
+        <LeftSidebar 
+          likedSongs={likedSongs} 
+          playlists={playlists} 
           activeTab={activeTab} 
-          searchTerm={searchTerm}
-          likedSongs={likedSongs}
-          onToggleLike={toggleLike}
+          onNavClick={setActiveTab}
+          onCreatePlaylist={handleCreatePlaylist}
         />
-      </main>
-
-      {/* Player ko Next/Previous functions bhej rahe hain */}
-      <Player 
+        
+        <MainContent 
+          activeTab={activeTab}
+          songs={songs} 
+          setSongs={setSongs} 
+          currentSong={currentSong} 
+          playSong={playSong}
+          likedSongs={likedSongs}
+          toggleLike={toggleLike}
+          playlists={playlists}
+          user={user}
+          onOpenProfile={() => setShowProfile(true)}
+          addToPlaylist={addToPlaylist} // Naya prop
+        />
+        
+        <RightPanel playSong={playSong} />
+      </div>
+      
+      <BottomPlayer 
         currentSong={currentSong}
         isPlaying={isPlaying}
-        onTogglePlay={togglePlay}
+        togglePlay={togglePlay}
+        playNext={playNext}
+        playPrevious={playPrevious}
         progress={progress}
         currentTime={currentTime}
         duration={duration}
-        onProgressClick={handleProgressClick}
-        audioRef={audioRef}
-        onPlayNext={playNext}
-        onPlayPrevious={playPrevious}
       />
       
+      {showProfile && (
+        <ProfileModal 
+          user={user}
+          likedSongs={likedSongs}
+          playlists={playlists}
+          onClose={() => setShowProfile(false)}
+          onLogout={handleLogout}
+        />
+      )}
+
       <audio 
-        ref={audioRef}
-        src={currentSong?.src}
+        ref={audioRef} 
+        src={currentSong?.src} 
         onTimeUpdate={handleTimeUpdate}
-        onEnded={playNext} // Song khatam hone par next bajega
+        onEnded={playNext}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
       />
