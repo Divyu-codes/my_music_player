@@ -20,6 +20,12 @@ function App() {
   const [likedSongs, setLikedSongs] = useState([]);
   const [playlists, setPlaylists] = useState([]);
 
+  // Naya: Shuffle, Repeat aur Navigation History ke liye states
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [isRepeat, setIsRepeat] = useState(0); // 0=off, 1=all, 2=one
+  const [navHistory, setNavHistory] = useState(['home']);
+  const [historyIdx, setHistoryIdx] = useState(0);
+
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState('0:00');
   const [duration, setDuration] = useState('0:30');
@@ -67,10 +73,16 @@ function App() {
     }, 100);
   };
 
+  // Naya: Shuffle logic ke sath Next Song
   const playNext = () => {
     if (songs.length === 0) return;
-    const idx = songs.findIndex(s => s.id === currentSong?.id);
-    playSong(songs[(idx + 1) % songs.length]);
+    if (isShuffle) {
+      const randomIndex = Math.floor(Math.random() * songs.length);
+      playSong(songs[randomIndex]);
+    } else {
+      const idx = songs.findIndex(s => s.id === currentSong?.id);
+      playSong(songs[(idx + 1) % songs.length]);
+    }
   };
 
   const playPrevious = () => {
@@ -96,22 +108,13 @@ function App() {
     }
   };
 
-  // NAYA: Add to Playlist Function
   const addToPlaylist = async (playlistId, song) => {
     try {
       await api.post(`/playlists/${playlistId}/add-song/`, {
-        song_id: song.id,
-        title: song.title,
-        artist: song.artist,
-        cover: song.cover,
-        src: song.src
+        song_id: song.id, title: song.title, artist: song.artist, cover: song.cover, src: song.src
       });
-      
-      // Local state update karein taaki UI turant reflect kare
       setPlaylists(prev => prev.map(p => 
-        p.id === playlistId 
-          ? { ...p, songs: [...(p.songs || []), song] } 
-          : p
+        p.id === playlistId ? { ...p, songs: [...(p.songs || []), song] } : p
       ));
       alert('Song added to playlist successfully!');
     } catch (error) {
@@ -120,7 +123,6 @@ function App() {
     }
   };
 
-  // English Prompt
   const handleCreatePlaylist = async () => {
     const name = prompt('Enter playlist name:');
     if (!name || !name.trim()) return;
@@ -132,6 +134,33 @@ function App() {
     } catch (error) {
       console.error("Error creating playlist:", error);
       alert("Failed to create playlist.");
+    }
+  };
+
+  // Naya: Navigation History Functions
+  const handleNavClick = (tab) => {
+    setActiveTab(tab);
+    const newHistory = navHistory.slice(0, historyIdx + 1);
+    if (newHistory[newHistory.length - 1] !== tab) {
+      newHistory.push(tab);
+      setNavHistory(newHistory);
+      setHistoryIdx(newHistory.length - 1);
+    }
+  };
+
+  const goBack = () => {
+    if (historyIdx > 0) {
+      const newIndex = historyIdx - 1;
+      setHistoryIdx(newIndex);
+      setActiveTab(navHistory[newIndex]);
+    }
+  };
+
+  const goForward = () => {
+    if (historyIdx < navHistory.length - 1) {
+      const newIndex = historyIdx + 1;
+      setHistoryIdx(newIndex);
+      setActiveTab(navHistory[newIndex]);
     }
   };
 
@@ -181,7 +210,7 @@ function App() {
           likedSongs={likedSongs} 
           playlists={playlists} 
           activeTab={activeTab} 
-          onNavClick={setActiveTab}
+          onNavClick={handleNavClick}
           onCreatePlaylist={handleCreatePlaylist}
         />
         
@@ -196,7 +225,11 @@ function App() {
           playlists={playlists}
           user={user}
           onOpenProfile={() => setShowProfile(true)}
-          addToPlaylist={addToPlaylist} // Naya prop
+          addToPlaylist={addToPlaylist}
+          goBack={goBack}
+          goForward={goForward}
+          canGoBack={historyIdx > 0}
+          canGoForward={historyIdx < navHistory.length - 1}
         />
         
         <RightPanel playSong={playSong} />
@@ -211,6 +244,10 @@ function App() {
         progress={progress}
         currentTime={currentTime}
         duration={duration}
+        isShuffle={isShuffle}
+        setIsShuffle={setIsShuffle}
+        isRepeat={isRepeat}
+        setIsRepeat={setIsRepeat}
       />
       
       {showProfile && (

@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import TopBar from './TopBar';
 import SongCard from './SongCard';
 
-export default function MainContent({ activeTab, songs, setSongs, currentSong, playSong, likedSongs, toggleLike, playlists, user, onOpenProfile, addToPlaylist }) {
+export default function MainContent({ 
+  activeTab, songs, setSongs, currentSong, playSong, likedSongs, toggleLike, 
+  playlists, user, onOpenProfile, addToPlaylist,
+  goBack, goForward, canGoBack, canGoForward 
+}) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [openPlaylist, setOpenPlaylist] = useState(null); // Naya: Kaunsi playlist open hai
+    const [openPlaylist, setOpenPlaylist] = useState(null);
 
-    // Jab tab change ho, playlist view band kar do
     useEffect(() => {
         setOpenPlaylist(null);
     }, [activeTab]);
@@ -44,12 +47,10 @@ export default function MainContent({ activeTab, songs, setSongs, currentSong, p
 
     const isLiked = (songId) => likedSongs.some(s => s.song_id === songId);
 
-    // ===== PLAYLIST DETAIL VIEW (Naya) =====
     const renderPlaylistDetail = () => {
         const playlistSongs = openPlaylist.songs || [];
         return (
             <>
-                {/* Back Button */}
                 <div className="p-4">
                     <button 
                         onClick={() => setOpenPlaylist(null)}
@@ -58,8 +59,6 @@ export default function MainContent({ activeTab, songs, setSongs, currentSong, p
                         <span>←</span> Back to Library
                     </button>
                 </div>
-
-                {/* Playlist Hero */}
                 <div className="bg-gradient-to-b from-indigo-900/60 to-zinc-900 p-8 min-h-[250px] flex items-end gap-6">
                     <div className="w-48 h-48 bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center shadow-2xl rounded-md">
                         <span className="text-6xl">🎵</span>
@@ -70,8 +69,6 @@ export default function MainContent({ activeTab, songs, setSongs, currentSong, p
                         <p className="text-zinc-400">{playlistSongs.length} songs</p>
                     </div>
                 </div>
-
-                {/* Play All Button */}
                 <div className="px-8 py-6 flex items-center gap-6">
                     <button 
                         onClick={() => playlistSongs.length > 0 && playSong({ id: playlistSongs[0].song_id, title: playlistSongs[0].title, artist: playlistSongs[0].artist, cover: playlistSongs[0].cover, src: playlistSongs[0].src })}
@@ -82,8 +79,6 @@ export default function MainContent({ activeTab, songs, setSongs, currentSong, p
                     </button>
                     <button className="text-zinc-400 hover:text-white text-2xl">🔀</button>
                 </div>
-
-                {/* Songs Table */}
                 <div className="px-8 pb-8">
                     {playlistSongs.length === 0 ? (
                         <div className="text-zinc-400 text-center mt-6 bg-zinc-900/50 p-10 rounded-lg">
@@ -136,9 +131,12 @@ export default function MainContent({ activeTab, songs, setSongs, currentSong, p
                 onSearchChange={handleSearch} 
                 user={user}
                 onOpenProfile={onOpenProfile}
+                goBack={goBack}
+                goForward={goForward}
+                canGoBack={canGoBack}
+                canGoForward={canGoForward}
             />
 
-            {/* Agar koi playlist open hai, toh uska detail dikhao */}
             {activeTab === 'library' && openPlaylist ? (
                 renderPlaylistDetail()
             ) : (
@@ -226,7 +224,7 @@ export default function MainContent({ activeTab, songs, setSongs, currentSong, p
                                             <div 
                                                 key={playlist.id} 
                                                 className="bg-zinc-900 p-4 rounded-md hover:bg-zinc-800 transition-all cursor-pointer group"
-                                                onClick={() => setOpenPlaylist(playlist)} // Playlist open hoga
+                                                onClick={() => setOpenPlaylist(playlist)}
                                             >
                                                 <div className="relative mb-4">
                                                     <div className="w-full aspect-square bg-gradient-to-br from-indigo-500 to-pink-500 rounded-md shadow-lg flex items-center justify-center group-hover:scale-105 transition-transform">
