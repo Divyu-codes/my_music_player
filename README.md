@@ -18,10 +18,9 @@ A modern, Spotify-inspired music streaming web application built with a robust F
 | Signup | Home & Discovery |
 | :---: | :---: |
 | ![Signup Page](screenshots/Signup.png) | ![Home Page](screenshots/HomePage.png) |
-
-| Library | LikedSongs |
+ LikedSongs |
 | :---: | :---: |
-| ![Library feature](screenshots/library.png) | ![Liked Song Ui](screenshots/likedsongs.png) |
+| ![Liked Song Ui](screenshots/likedsongs.png) |
 
 ---
 
@@ -61,7 +60,7 @@ Follow these steps to run the project locally:
 
 ### **1. Clone the Repository**
 ```bash
-git clone https://github.com/Divyu-codes/music_player.git
+git clone https://github.com/Divyu-codes/my_music_player
 cd music_player
 
 📂 Project Structure
@@ -81,5 +80,4 @@ my_music_player/
     👨‍💻 Author
 Divya
 GitHub: @Divyu-codes
-LinkedIn: [Your LinkedIn Profile Link]
 Made with ❤️ and lots of ☕.
