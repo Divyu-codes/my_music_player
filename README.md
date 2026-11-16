@@ -21,7 +21,7 @@ A modern, Spotify-inspired music streaming web application built with a robust F
 
 | Library | LikedSongs |
 | :---: | :---: |
-| ![Playlist](screenshots/library.png) | ![Liked Song Ui](screenshots/likedsongs.png) |
+| ![Library feature](screenshots/library.png) | ![Liked Song Ui](screenshots/likedsongs.png) |
 
 ---
 
