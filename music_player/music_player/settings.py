@@ -12,8 +12,8 @@ from datetime import timedelta # JWT ke liye zaroori
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = True
-ALLOWED_HOSTS = ['*'] # Development ke liye '*' theek hai, production mein specific domain dalna
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = ['*'] 
 
 # Application definition
 INSTALLED_APPS = [
