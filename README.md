@@ -8,8 +8,8 @@ A full-stack music player built using React and Django REST Framework
 
 A modern, Spotify-inspired music streaming web application built with a robust Full-Stack architecture. Musify allows users to discover music, create personalized playlists, like their favorite tracks, and enjoy a seamless audio playback experience with secure authentication.
 
-🔗 **Live Demo:** [Insert Vercel/Render Link Here]
-💻 **Source Code:** [Insert GitHub Link Here]
+🔗 **Live Demo:** https://my-music-player-brown.vercel.app/
+💻 **Source Code:** https://github.com/Divyu-codes/my_music_player
 
 ---
 
