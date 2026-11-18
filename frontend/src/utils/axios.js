@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Django backend ka base URL
-const API_URL = 'https://my-music-player-rw8j.onrender.com';
+const API_URL = 'https://my-music-player-rw8j.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_URL,
